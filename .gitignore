@@ -1,0 +1,6 @@
+*.db
+*.wpr
+*.idea
+*.pem
+*.log
+\__pycache__
