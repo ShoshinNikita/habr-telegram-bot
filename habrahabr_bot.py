@@ -27,7 +27,7 @@ dbAdapter = DataBase(main_log=logAdapter)
 # Check
 def parse_summary(summary):
 	soup = BeautifulSoup(summary, "html.parser")
-	new_summary = str(soup.text).replace("\n", "")
+	new_summary = str(soup.text).replace("\n", " ")
 	new_summary = re.findall(r"^.{1,400}\.", new_summary)[0]
 	new_summary = re.sub("Читать дальше", "", new_summary)
 	return new_summary
@@ -47,39 +47,43 @@ def send_articles():
 			
 			articles_list = feedparser.parse(config.SITE_ADDRESS)["entries"]
 			
-			for article in articles_list:
+			# Предотвращение ситуации, когда список статей пуст. Возникает из-за ошибки при парсинге
+			if len(articles_list) > 0:
+				for article in articles_list:
+					article_time = datetime.strptime(article["published"], "%a, %d %b %Y %H:%M:%S %Z")
+					# Проверка, новая ли статья
+					if last_article_time >= article_time:
+						break
+					
+					# Создание сообщения, которое будет отправлено
+					message_text = "<b>" + article["title"] + "</b>" + "\n"
+					message_text += parse_summary(article["summary"])
+					message_text += " <a href='" + article["link"] + "'>Читать дальше</a>"
+	
+					article_tags = []
+					for i in article["tags"]:
+						tag = i["term"].lower()
+						tag = tag.replace(" ", "_")
+						article_tags.append(tag)
+	
+					# Отправка
+					for user in users:
+						common_tags = [i for i in users[user] if i in article_tags]
+						if len(users[user]) == 0 or len(common_tags) != 0:
+							try:
+								bot.send_message(user, message_text, parse_mode="HTML")
+							except Exception as e:
+								logAdapter.error(str(e))
 				
-				article_time = datetime.strptime(article["published"], "%a, %d %b %Y %H:%M:%S %Z")
-				# Проверка, новая ли статья
-				if last_article_time >= article_time:
-					break
+				# Сохранение времени поселдней опубликованой(!) статьи. Формируется из времени первой статьи в списке
+				new_article_time = datetime.strptime(articles_list[0]["published"], "%a, %d %b %Y %H:%M:%S %Z")
+				last_article_info["last_time"] = str(new_article_time)
+				file = open("last_article_info.json", "w")
+				file.write(json.dumps(last_article_info))
+				file.close()
+			else:
+				logAdapter.error("Empty 'entries'")
 				
-				# Создание сообщения, которое будет отправлено
-				message_text = "<b>" + article["title"] + "</b>" + "\n"
-				message_text += parse_summary(article["summary"])
-				message_text += " <a href='" + article["link"] + "'>Читать дальше</a>"
-
-				article_tags = []
-				for i in article["tags"]:
-					tag = i["term"].lower()
-					tag = tag.replace(" ", "_")
-					article_tags.append(tag)
-
-				# Отправка
-				for user in users:
-					common_tags = [i for i in users[user] if i in article_tags]
-					if len(users[user]) == 0 or len(common_tags) != 0:
-						try:
-							bot.send_message(user, message_text, parse_mode="HTML")
-						except Exception as e:
-							logAdapter.error(str(e))
-			
-			# Сохранение времени поселдней опубликованой(!) статьи. Формируется из времени первой статьи в списке
-			new_article_time = datetime.strptime(articles_list[0]["published"], "%a, %d %b %Y %H:%M:%S %Z")
-			last_article_info["last_time"] = str(new_article_time)
-			file = open("last_article_info.json", "w")
-			file.write(json.dumps(last_article_info))
-			file.close()
 		except Exception as e:
 			logAdapter.error(str(e))
 

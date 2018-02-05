@@ -3,7 +3,7 @@ SITE_ADDRESS = "https://habrahabr.ru/rss/all/"
 DB_NAME = "users.db"
 BOT_TOKEN = "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
 
-COOLDOWN = 180  # in seconds
+COOLDOWN = 600  # in seconds
 
 HELP_TEXT = '''Список команд:
 	/my_tags - показать список тегов, на которые пользователь подписан
