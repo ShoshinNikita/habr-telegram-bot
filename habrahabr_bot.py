@@ -28,7 +28,10 @@ dbAdapter = DataBase(main_log=logAdapter)
 def parse_summary(summary):
 	soup = BeautifulSoup(summary, "html.parser")
 	new_summary = str(soup.text).replace("\n", " ")
-	new_summary = re.findall(r"^.{1,400}\.", new_summary)[0]
+	re_result = re.findall(r"^.{1,600}\.", new_summary)
+	if len(re_result) > 0:
+		new_summary = re_result[0]
+		
 	new_summary = re.sub("Читать дальше", "", new_summary)
 	return new_summary
 	
